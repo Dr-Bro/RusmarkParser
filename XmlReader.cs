@@ -4,32 +4,63 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Xml;
+using System.IO;
 
-namespace ConsoleApplication7
+namespace WpfApplication2
 {
+    struct Record
+    {
+        public List<Fields> elements { get; set; }
+        
+    }
+
+    struct Fields
+    {
+        public Dictionary<string, Subfields> fields { get; set; }
+    }
+
+    struct Subfields
+    {
+        public Dictionary<string, string> props { get; set; }
+    }
     class XmlReader
     {
+        //документ для анализа
         private XmlDocument xDoc;
-        private XmlElement  xRoot;
-        //private XmlNode xNode;
-        private string[] attr = {
+
+        //Начало древа xml файла
+        private XmlElement xRoot;
+
+        //словарь настроек
+        public string settings { get; set; }
+
+        //Dictionary records
+        private Queue<Record> records = new Queue<Record>();
+        //private Dictionary<string, Record> records = new Dictionary<string, Record>();
+        private Dictionary<string, string[]> settingsFields = new Dictionary<string,string[]>();
+
+        private Dictionary<string, string[]> fields = new TableCreator().getFields();
+        private List<XmlNode> records_list = new List<XmlNode>();
+        private List<TableCreator.Element> record_list = new List<TableCreator.Element>();
+
+        private string[] attr2 = {
                                  "FIELD.1",
+                                 "FIELD.10",
                                  "FIELD.200",
                                  "FIELD.210",
                                  "FIELD.215",
                                  "FIELD.225",
                                  "FIELD.300", 
                                  "FIELD.331",
+                                 "FIELD.461",
                                  "FIELD.702",
                                  "FIELD.852",
-                                 "FIELD.899"
+                                 "FIELD.899",
+                                 "FIELD.905",
+                                 "FIELD.907",
+                                 "FIELD.910"
                                 };
-        private Dictionary<string, string> countries = new Dictionary<string, string>
-        {
-                                {"FIELD.200", "Париж"},
-                                {"FIELD.225", "SUBFIELD.a"},
-                                {"Великобритания", "Лондон"}
-        };
+
 
         public XmlReader Init(string path)
         {
@@ -38,65 +69,155 @@ namespace ConsoleApplication7
             return this;
         }
 
-        private  void Prepare()
+        private void Prepare()
         {
             this.xRoot = this.xDoc.DocumentElement;
         }
 
+        public XmlReader LoadSettings()
+        {
+            //this.xDoc = new XmlDocument();
+            //this.xDoc.Load(this.settings);
+            this.Prepare();
+
+            foreach (XmlNode xnode in this.xRoot)
+            {
+               string name = "";
+               string[] mass = new string[] {""};
+               foreach (XmlNode child in xnode)
+               {
+                   switch (child.Name)
+                   {
+                       case "number": name = child.InnerText; break;
+                       case "subfield": mass = child.InnerText.Split(','); break;
+                   }
+               }
+               this.settingsFields.Add(name, mass);
+            }
+            
+            return this; 
+        }
+
         private void FindElement(XmlNode node)
         {
-            if (this.attr.Contains(node.Name))
+            // node == внутренний элемент record
+            // если Элемент имеет свойства то вызывается ReformatNode
+            // если нет выводится результат
+            if (node.ChildNodes.Count > 1)
             {
-                if (node.ChildNodes.Count > 1)
-                {
-                    this.ReformatNode(node);
-                }
-                else
-                {
-                    Console.WriteLine("XML: {0}, {1}", node.InnerText, node.Name);
-                }
-                //Console.WriteLine("-----------------------");
+                //this.ReformatNode(node);
+            }
+            else
+            {
+                
+                this.WriteResult(node.Name);
+                //this.WriteResult(node.Name, node.InnerText);
             }
         }
 
         public string Process()
         {
             this.Prepare();
+
             foreach (XmlNode xnode in this.xRoot)
             {
-                Console.WriteLine("------BOOK---------");
-               //Console.WriteLine(xnode.InnerXml.ToString());
-                foreach (XmlNode child in xnode.ChildNodes)
-                {
-                  
-                   this.FindElement(child);
-                  
-                }
-                Console.WriteLine("-------END BOOK--------");
-               // Console.WriteLine("Название: {0}",buf.Item(2).InnerXml);
+                // xnode == record
+                this.WriteResult("------BOOK---------");
+                this.records_list.Add(xnode);
+                this.records.Enqueue(this.ListsForeach(xnode));
+                this.WriteResult("------END BOOK---------");
+                
             }
-           
+
+            this.WriteResult(this.records_list.ToString());
             return "cool";
         }
 
+
+        private Record ListsForeach(XmlNode xnode)
+        {
+            Record record = new Record { elements = new List<Fields>() };
+           foreach (XmlNode child in xnode.ChildNodes)
+            {
+                Fields field = new Fields { fields = new Dictionary<string, Subfields>() };
+                Subfields subfields = new Subfields { props = new Dictionary<string, string>() };
+                if (this.settingsFields.Keys.Contains(child.Name))
+                { 
+                   if (child.ChildNodes.Count > 1)
+                    {
+                      subfields =  this.ReformatNode(child, subfields);
+                      field.fields.Add(child.Name, subfields);
+                      record.elements.Add(field);
+                  
+                    }
+                    else
+                    {
+                        subfields.props.Add("value",child.InnerText);
+                        field.fields.Add(child.Name, subfields);
+                        record.elements.Add(field);
+                   
+                    }
+               }
+            }
+           return record;
+        }
         private XmlNodeList TakeNode(XmlNode Node)
         {
             return Node.ChildNodes;
         }
 
-        private string ReformatNode(XmlNode node){
-            foreach (XmlNode child in node.ChildNodes)
+        private Subfields ReformatNode(XmlNode node, Subfields subfields)
+        {
+           XmlNode parrent = node;
+            if (node.ChildNodes.Count > 1)
             {
-                //Console.WriteLine("------- ATTR ------");
+                foreach (XmlNode child in node.ChildNodes)
+                {
+                    string index = node.Name;
 
-                    
-                        //Console.Write(node.Name);
-                Console.WriteLine("XML:{0} , {1} ", child.InnerXml, child.Name);
 
-                
-                //Console.WriteLine("-------- END -------");
+                    if (this.settingsFields.Keys.Contains(index) && this.settingsFields[index].Contains(child.Name))
+                    {
+                        //record_list.Add(new TableCreator.Element(parrent.ParentNode.InnerText, node.Name, child.Name, child.InnerText));
+                        subfields.props.Add(child.Name, child.InnerText);
+                    }
+                }
             }
-            return "";
+            return subfields;
+        }
+
+        private string SubStrReplace(string str, string substr, string text)
+        {
+            return str.Replace(substr, text);
+        }
+
+        private void WriteResult(string str1, string str2 = "")
+        {
+            //string readPath = @"hta.txt";
+            string writePath = @"ath.txt";
+
+            //string text = "";
+            try
+            {
+                //using (StreamReader sr = new StreamReader(readPath, System.Text.Encoding.Default))
+                // {
+                //  text = sr.ReadToEnd();
+                // }
+                using (StreamWriter sw = new StreamWriter(writePath, true, System.Text.Encoding.Default))
+                {
+                    sw.WriteLine("{0} : {1}", str1, str2);
+                }
+
+                //using (StreamWriter sw = new StreamWriter(writePath, true, System.Text.Encoding.Default))
+                //{
+                // sw.WriteLine("Дозапись");
+                //  sw.Write(4.5);
+                //}
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e.Message);
+            }
         }
     }
 }
