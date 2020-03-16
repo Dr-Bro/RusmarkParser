@@ -37,7 +37,7 @@ namespace WpfApplication2
         //Dictionary records
         private Queue<Record> records = new Queue<Record>();
         //private Dictionary<string, Record> records = new Dictionary<string, Record>();
-        private Dictionary<string, string[]> settingsFields = new Dictionary<string,string[]>();
+        public Dictionary<string, string[]> settingsFields = new Dictionary<string,string[]>();
 
         private Dictionary<string, string[]> fields = new TableCreator().getFields();
         private List<XmlNode> records_list = new List<XmlNode>();
@@ -74,7 +74,7 @@ namespace WpfApplication2
             this.xRoot = this.xDoc.DocumentElement;
         }
 
-        public XmlReader LoadSettings()
+        public Dictionary<string, string[]> LoadSettings()
         {
             //this.xDoc = new XmlDocument();
             //this.xDoc.Load(this.settings);
@@ -94,8 +94,8 @@ namespace WpfApplication2
                }
                this.settingsFields.Add(name, mass);
             }
-            
-            return this; 
+
+            return settingsFields; 
         }
 
         private void FindElement(XmlNode node)
@@ -115,7 +115,7 @@ namespace WpfApplication2
             }
         }
 
-        public string Process()
+        public Queue<Record> Process()
         {
             this.Prepare();
 
@@ -130,7 +130,7 @@ namespace WpfApplication2
             }
 
             this.WriteResult(this.records_list.ToString());
-            return "cool";
+            return this.records;
         }
 
 
@@ -161,6 +161,7 @@ namespace WpfApplication2
             }
            return record;
         }
+
         private XmlNodeList TakeNode(XmlNode Node)
         {
             return Node.ChildNodes;

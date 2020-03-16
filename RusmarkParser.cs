@@ -25,10 +25,31 @@ namespace WpfApplication2
         
         public void run(string path, string settings)
         {
+            SettingsParser sett = new SettingsParser();
+            sett.Init(settings).Process();
+            Dictionary<string, string[]> settin = sett.settingsFields;
+
+            Parser pars = new Parser();
+            pars.settingsFields = settin;
+            pars.Init(path).Process();
+            Queue<Record> books1 = pars.records;
+
+            SqlGenerator sql = new SqlGenerator();
+            sql.books = books1;
+            sql.settings = settin;
+            
             XmlReader rusMark = new XmlReader();
-            rusMark.Init(settings).LoadSettings();
-            rusMark.Init(path).Process();
-            Console.Read();
+            
+            rusMark.settingsFields = settin;
+            Queue<Record> books = rusMark.Init(path).Process();
+            
+             TableCreator table = new TableCreator();
+             table.data = books;
+             table.settingsPath = settings;
+             SqlGenerator sql2 = new SqlGenerator();
+             sql2.settings = rusMark.Init(settings).LoadSettings(); 
+             sql2.Generate();
+             //table.CheckSettings();
         }
     }
    
