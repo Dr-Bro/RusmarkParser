@@ -8,24 +8,44 @@ using System.Xml;
 
 namespace WpfApplication2
 {
+
+    struct SqlSetting
+    {
+        public string name;
+        public string[] props;
+        public string[] db_names;
+        public SqlSetting(string name, string[] props, string[] db_names)
+        {
+            this.name = name;
+            this.props = props;
+            this.db_names = db_names;
+        }
+    }
+
+
     class SqlGenerator
     {
         const string INSERT_START = "INSERT INTO `catalog` VALUES (";
         const string INSERT_END = ");";
 
         List<string> rows = new List<string>();
-        public Queue<Record> books { get; set; }
-        public Dictionary<string, string[]> settings { get; set; }
+        public List<RecordFinal> books { get; set; }
+        public List<SqlSetting> settings { get; set; }
 
         private SqlGenerator Prepare()
         {
-            this.settings.ToString();
+           
+           foreach(RecordFinal book in books){
+               string[] foos = new string[book.fields.Count];
+               book.fields.Values.CopyTo(foos, 0);
+               WriteResult(GetInsertSql(foos));
+           }
             return this;
         }
+
         public void Generate()
         {
             this.Prepare();
-
         }
 
         private string GetInsertSql(string[] mass)

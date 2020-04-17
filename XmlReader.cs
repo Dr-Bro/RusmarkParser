@@ -23,6 +23,7 @@ namespace WpfApplication2
     {
         public Dictionary<string, string> props { get; set; }
     }
+
     class XmlReader
     {
         //документ для анализа

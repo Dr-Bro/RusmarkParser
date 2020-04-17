@@ -28,27 +28,30 @@ namespace WpfApplication2
             SettingsParser sett = new SettingsParser();
             sett.Init(settings).Process();
             Dictionary<string, string[]> settin = sett.settingsFields;
+            List<SqlSetting> sql2 = sett.sql;
 
             Parser pars = new Parser();
+            pars.sql = sql2;
             pars.settingsFields = settin;
             pars.Init(path).Process();
-            Queue<Record> books1 = pars.records;
+            List<RecordFinal> books1 = pars.result;
 
             SqlGenerator sql = new SqlGenerator();
             sql.books = books1;
-            sql.settings = settin;
+            sql.settings = sett.sql;
+            sql.Generate();
             
             XmlReader rusMark = new XmlReader();
             
             rusMark.settingsFields = settin;
             Queue<Record> books = rusMark.Init(path).Process();
             
-             TableCreator table = new TableCreator();
-             table.data = books;
-             table.settingsPath = settings;
-             SqlGenerator sql2 = new SqlGenerator();
-             sql2.settings = rusMark.Init(settings).LoadSettings(); 
-             sql2.Generate();
+            // TableCreator table = new TableCreator();
+             //table.data = books;
+             //table.settingsPath = settings;
+             //SqlGenerator sql2 = new SqlGenerator();
+             //sql2.settings = rusMark.Init(settings).LoadSettings(); 
+             //sql2.Generate();
              //table.CheckSettings();
         }
     }
